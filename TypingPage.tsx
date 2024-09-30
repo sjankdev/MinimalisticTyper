@@ -6,14 +6,11 @@ import Icon from 'react-native-vector-icons/Ionicons';
 const TypingPage: React.FC<{ route: any; navigation: any }> = ({ route, navigation }) => {
   const { addText, initialText, index } = route.params;
   const [inputText, setInputText] = useState(initialText || '');
-
   const richText = useRef<RichEditor>(null);
 
   const handleDone = () => {
-    richText.current?.getContentHtml().then((html: string) => {
-      addText(html, index);
-      navigation.goBack();
-    });
+    addText(inputText, index);
+    navigation.goBack();
   };
 
   return (
@@ -30,6 +27,7 @@ const TypingPage: React.FC<{ route: any; navigation: any }> = ({ route, navigati
           backgroundColor: 'transparent',
           color: 'white',
         }}
+        onChange={(html) => setInputText(html)}
       />
 
       <RichToolbar

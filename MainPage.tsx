@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, FlatList, StyleSheet, TouchableOpacity, Alert, Text, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
+import RenderHTML from 'react-native-render-html';
 
 interface SavedText {
   text: string;
@@ -17,11 +18,13 @@ const formatDate = (date: Date) => {
 
 const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [texts, setTexts] = useState<SavedText[]>([]);
+  const contentWidth = Dimensions.get('window').width;
 
   const storeData = async (texts: SavedText[]) => {
     try {
       await AsyncStorage.setItem('@texts', JSON.stringify(texts));
     } catch (e) {
+      console.error("Error storing data", e);
     }
   };
 
@@ -35,6 +38,7 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
         }
       }
     } catch (e) {
+      console.error("Error loading data", e);
     }
   };
 
@@ -61,10 +65,6 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
     navigation.navigate('Typing', { addText, initialText: text, index });
   };
 
-  const truncateText = (text: string) => {
-    return text.length > 30 ? text.slice(0, 30) + '...' : text;
-  };
-
   const deleteText = async (index: number) => {
     const updatedTexts = texts.filter((_, i) => i !== index);
     setTexts(updatedTexts);
@@ -83,6 +83,15 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
     );
   };
 
+  const tagsStyles = {
+    p: {
+      color: 'white',
+    },
+    strong: {
+      fontWeight: 'bold' as 'bold',
+    },
+  };
+
   return (
     <View style={styles.container}>
       <View style={texts.length === 0 ? styles.centerButtonContainer : styles.topButtonContainer}>
@@ -99,7 +108,11 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
         renderItem={({ item, index }) => (
           <TouchableOpacity onPress={() => handleEditText(item.text, index)}>
             <View style={styles.textContainer}>
-              <Text style={styles.textItem}>{truncateText(item.text || '')}</Text>
+              <RenderHTML
+                contentWidth={contentWidth}
+                source={{ html: item.text }}
+                tagsStyles={tagsStyles}
+              />
               <Text style={styles.dateItem}>{item.date || ''}</Text>
               <TouchableOpacity onPress={() => confirmDelete(index)}>
                 <Icon name="trash-outline" size={24} color="#C62828" />
@@ -115,20 +128,20 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'black',
+    backgroundColor: 'red',
     justifyContent: 'flex-start',
     alignItems: 'center',
     padding: 20,
   },
   centerButtonContainer: {
     flex: 1,
-    justifyContent: 'center', 
-    alignItems: 'center', 
+    justifyContent: 'center',
+    alignItems: 'center',
     width: '100%',
   },
   topButtonContainer: {
-    width: '100%', 
-    marginBottom: 20, 
+    width: '100%',
+    marginBottom: 20,
     alignItems: 'center',
   },
   startTypingButton: {
@@ -152,10 +165,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  textItem: {
-    color: 'white',
-    flex: 1,
   },
   dateItem: {
     color: 'gray',
