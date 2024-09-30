@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, StyleSheet } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons'; 
 
 const TypingPage: React.FC<{ route: any; navigation: any }> = ({ route, navigation }) => {
   const [inputText, setInputText] = useState('');
@@ -12,7 +13,7 @@ const TypingPage: React.FC<{ route: any; navigation: any }> = ({ route, navigati
   }, [initialText]);
 
   const handleDone = () => {
-    addText(inputText, index); 
+    addText(inputText, index);
     navigation.goBack();
   };
 
@@ -22,11 +23,18 @@ const TypingPage: React.FC<{ route: any; navigation: any }> = ({ route, navigati
         style={styles.input}
         multiline
         placeholder="Type here..."
+        placeholderTextColor="gray" 
         value={inputText}
         onChangeText={setInputText}
       />
-      <Button title="Done" onPress={handleDone} />
-      <Button title="X" onPress={() => navigation.goBack()} />
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity onPress={handleDone} style={styles.button}>
+          <Icon name="checkmark" size={30} color="white" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.button}>
+          <Icon name="close" size={30} color="white" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -35,14 +43,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'black',
-    justifyContent: 'center',
+    justifyContent: 'flex-start', 
     padding: 20,
   },
   input: {
-    height: 200,
-    borderColor: 'gray',
-    borderWidth: 1,
+    flex: 1, 
+    borderWidth: 0, 
     color: 'white',
+    padding: 10,
+    backgroundColor: 'transparent', 
+    textAlignVertical: 'top', 
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 10,
+  },
+  button: {
     padding: 10,
   },
 });
