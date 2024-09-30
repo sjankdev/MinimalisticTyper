@@ -7,13 +7,16 @@ import RenderHTML from 'react-native-render-html';
 interface SavedText {
   text: string;
   date: string;
+  timestamp: number;
 }
 
 const formatDate = (date: Date) => {
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
 };
 
 const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
@@ -34,7 +37,8 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
       if (savedTexts !== null) {
         const parsedTexts = JSON.parse(savedTexts);
         if (Array.isArray(parsedTexts)) {
-          setTexts(parsedTexts.reverse());
+          const sortedTexts = parsedTexts.sort((a, b) => b.timestamp - a.timestamp);
+          setTexts(sortedTexts);
         }
       }
     } catch (e) {
@@ -48,13 +52,15 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const addText = async (text: string, index?: number) => {
     const date = formatDate(new Date());
+    const timestamp = Date.now();
     let updatedTexts;
 
     if (index !== undefined) {
-      updatedTexts = [...texts];
-      updatedTexts[index] = { text, date };
+      const updatedText = { text, date, timestamp };
+      updatedTexts = texts.filter((_, i) => i !== index);
+      updatedTexts = [updatedText, ...updatedTexts];
     } else {
-      updatedTexts = [{ text, date }, ...texts];
+      updatedTexts = [{ text, date, timestamp }, ...texts];
     }
 
     setTexts(updatedTexts);
@@ -114,7 +120,7 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
               <View style={styles.textContent}>
                 <RenderHTML
                   contentWidth={contentWidth}
-                  source={{ html: item.text.substring(0, 30) }}
+                  source={{ html: item.text.substring(0, 19) }}
                   tagsStyles={tagsStyles}
                 />
               </View>
