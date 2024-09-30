@@ -90,6 +90,9 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
     strong: {
       fontWeight: 'bold' as 'bold',
     },
+    body: {
+      color: 'white',
+    },
   };
 
   return (
@@ -128,7 +131,7 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'red',
+    backgroundColor: 'black',
     justifyContent: 'flex-start',
     alignItems: 'center',
     padding: 20,
