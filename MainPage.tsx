@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Button, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 interface SavedText {
   text: string;
-  date: string; 
+  date: string;
 }
 
 const formatDate = (date: Date) => {
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
-  return `${day}/${month}/${year}`; 
+  return `${day}/${month}/${year}`;
 };
-
 
 const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [texts, setTexts] = useState<SavedText[]>([]);
@@ -22,7 +22,6 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
     try {
       await AsyncStorage.setItem('@texts', JSON.stringify(texts));
     } catch (e) {
-      console.error('Failed to save texts.', e);
     }
   };
 
@@ -32,13 +31,11 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
       if (savedTexts !== null) {
         const parsedTexts = JSON.parse(savedTexts);
         if (Array.isArray(parsedTexts)) {
-          setTexts(parsedTexts);
+          setTexts(parsedTexts.reverse());
         } else {
-          console.error('Loaded data is not an array:', parsedTexts);
         }
       }
     } catch (e) {
-      console.error('Failed to load texts.', e);
     }
   };
 
@@ -47,14 +44,14 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
   }, []);
 
   const addText = async (text: string, index?: number) => {
-    const date = formatDate(new Date()); 
+    const date = formatDate(new Date());
     let updatedTexts;
 
     if (index !== undefined) {
       updatedTexts = [...texts];
       updatedTexts[index] = { text, date };
     } else {
-      updatedTexts = [...texts, { text, date }];
+      updatedTexts = [{ text, date }, ...texts];
     }
 
     setTexts(updatedTexts);
@@ -70,9 +67,9 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   const deleteText = async (index: number) => {
-    const updatedTexts = texts.filter((_, i) => i !== index); 
+    const updatedTexts = texts.filter((_, i) => i !== index);
     setTexts(updatedTexts);
-    await storeData(updatedTexts); 
+    await storeData(updatedTexts);
   };
 
   const confirmDelete = (index: number) => {
@@ -89,10 +86,12 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Button
-        title="Start Typing"
+      <TouchableOpacity
+        style={styles.startTypingButton}
         onPress={() => navigation.navigate('Typing', { addText })}
-      />
+      >
+        <Text style={styles.buttonText}>Start Typing</Text>
+      </TouchableOpacity>
       <FlatList
         data={texts}
         keyExtractor={(item, index) => index.toString()}
@@ -102,7 +101,7 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
               <Text style={styles.textItem}>{truncateText(item.text || '')}</Text>
               <Text style={styles.dateItem}>{item.date || ''}</Text>
               <TouchableOpacity onPress={() => confirmDelete(index)}>
-                <Text style={styles.deleteItem}>Delete</Text>
+                <Icon name="trash-outline" size={24} color="#C62828" />
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -115,28 +114,40 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: 'black',
+    justifyContent: 'flex-start',
     alignItems: 'center',
+    padding: 20,
+  },
+  startTypingButton: {
+    backgroundColor: 'transparent',
+    padding: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#1E90FF',
+    marginBottom: 20,
+  },
+  buttonText: {
+    color: '#1E90FF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   textContainer: {
     padding: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    width: '100%', 
+    borderBottomColor: '#555',
+    width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   textItem: {
-    color: 'blue', 
+    color: 'white',
+    flex: 1,
   },
   dateItem: {
-    color: 'gray', 
-  },
-  deleteItem: {
-    color: 'red',
+    color: 'gray',
   },
 });
 
 export default MainPage;
-
