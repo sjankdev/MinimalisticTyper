@@ -1,32 +1,58 @@
-import React, { useState, useEffect } from 'react';
-import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 import Icon from 'react-native-vector-icons/Ionicons'; 
 
 const TypingPage: React.FC<{ route: any; navigation: any }> = ({ route, navigation }) => {
-  const [inputText, setInputText] = useState('');
   const { addText, initialText, index } = route.params;
+  const [inputText, setInputText] = useState(initialText || '');
 
-  useEffect(() => {
-    if (initialText) {
-      setInputText(initialText);
-    }
-  }, [initialText]);
+  const richText = useRef<RichEditor>(null);
 
   const handleDone = () => {
-    addText(inputText, index);
-    navigation.goBack();
+    richText.current?.getContentHtml().then((html: string) => {
+      addText(html, index);
+      navigation.goBack();
+    });
   };
 
   return (
-    <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        multiline
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <RichEditor
+        ref={richText}
+        initialContentHTML={inputText}
+        style={styles.richEditor}
         placeholder="Type here..."
-        placeholderTextColor="gray" 
-        value={inputText}
-        onChangeText={setInputText}
+        editorStyle={{
+          backgroundColor: 'transparent',
+          color: 'white',
+        }}
       />
+
+      <RichToolbar
+        editor={richText}
+        actions={[
+          actions.setBold,
+          actions.setItalic,
+          actions.setUnderline,
+          actions.setStrikethrough,
+          actions.insertBulletsList,
+          actions.insertOrderedList,
+          actions.insertLink,
+          actions.insertImage,
+          actions.insertVideo,
+          actions.checkboxList,
+          actions.undo,
+          actions.redo,
+          actions.removeFormat,
+        ]}
+        iconTint="white"
+        style={styles.toolbar}
+      />
+
       <View style={styles.buttonContainer}>
         <TouchableOpacity onPress={handleDone} style={styles.button}>
           <Icon name="checkmark" size={30} color="white" />
@@ -35,7 +61,7 @@ const TypingPage: React.FC<{ route: any; navigation: any }> = ({ route, navigati
           <Icon name="close" size={30} color="white" />
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -43,16 +69,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'black',
-    justifyContent: 'flex-start', 
-    padding: 20,
   },
-  input: {
-    flex: 1, 
-    borderWidth: 0, 
-    color: 'white',
-    padding: 10,
-    backgroundColor: 'transparent', 
-    textAlignVertical: 'top', 
+  richEditor: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: 'transparent',
+  },
+  toolbar: {
+    backgroundColor: 'black',
+    borderTopWidth: 1,
+    borderTopColor: 'gray',
   },
   buttonContainer: {
     flexDirection: 'row',
