@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Button, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
 
@@ -32,7 +32,6 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
         const parsedTexts = JSON.parse(savedTexts);
         if (Array.isArray(parsedTexts)) {
           setTexts(parsedTexts.reverse());
-        } else {
         }
       }
     } catch (e) {
@@ -86,12 +85,14 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.startTypingButton}
-        onPress={() => navigation.navigate('Typing', { addText })}
-      >
-        <Text style={styles.buttonText}>Start Typing</Text>
-      </TouchableOpacity>
+      <View style={texts.length === 0 ? styles.centerButtonContainer : styles.topButtonContainer}>
+        <TouchableOpacity
+          style={styles.startTypingButton}
+          onPress={() => navigation.navigate('Typing', { addText })}
+        >
+          <Text style={styles.buttonText}>Start Typing</Text>
+        </TouchableOpacity>
+      </View>
       <FlatList
         data={texts}
         keyExtractor={(item, index) => index.toString()}
@@ -118,6 +119,17 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     padding: 20,
+  },
+  centerButtonContainer: {
+    flex: 1,
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    width: '100%',
+  },
+  topButtonContainer: {
+    width: '100%', 
+    marginBottom: 20, 
+    alignItems: 'center',
   },
   startTypingButton: {
     backgroundColor: 'transparent',
