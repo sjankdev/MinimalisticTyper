@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, StyleSheet, TouchableOpacity, Alert, Text, Dimensions } from 'react-native';
+import { View, FlatList, StyleSheet, TouchableOpacity, Alert, Text, Dimensions, SafeAreaView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
 import RenderHTML from 'react-native-render-html';
@@ -96,7 +96,7 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={texts.length === 0 ? styles.centerButtonContainer : styles.topButtonContainer}>
         <TouchableOpacity
           style={styles.startTypingButton}
@@ -111,20 +111,27 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
         renderItem={({ item, index }) => (
           <TouchableOpacity onPress={() => handleEditText(item.text, index)}>
             <View style={styles.textContainer}>
-              <RenderHTML
-                contentWidth={contentWidth}
-                source={{ html: item.text }}
-                tagsStyles={tagsStyles}
-              />
-              <Text style={styles.dateItem}>{item.date || ''}</Text>
-              <TouchableOpacity onPress={() => confirmDelete(index)}>
-                <Icon name="trash-outline" size={24} color="#C62828" />
-              </TouchableOpacity>
+              <View style={styles.textContent}>
+                <RenderHTML
+                  contentWidth={contentWidth}
+                  source={{ html: item.text.substring(0, 30) }}
+                  tagsStyles={tagsStyles}
+                />
+              </View>
+              <View style={styles.dateItem}>
+                <Text style={styles.dateText}>{item.date || ''}</Text>
+              </View>
+              <View style={styles.deleteButton}>
+                <TouchableOpacity onPress={() => confirmDelete(index)}>
+                  <Icon name="trash-outline" size={24} color="#C62828" />
+                </TouchableOpacity>
+              </View>
             </View>
           </TouchableOpacity>
         )}
+        showsVerticalScrollIndicator={false}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -132,8 +139,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'black',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
     padding: 20,
   },
   centerButtonContainer: {
@@ -161,16 +166,29 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   textContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#555',
     width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  },
+  textContent: {
+    flex: 1,
+    paddingRight: 10,
   },
   dateItem: {
+    width: '33%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dateText: {
     color: 'gray',
+    textAlign: 'center',
+  },
+  deleteButton: {
+    width: '33%',
+    alignItems: 'flex-end',
   },
 });
 
