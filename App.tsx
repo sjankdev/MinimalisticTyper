@@ -1,25 +1,31 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import MainPage from './MainPage';
+import TypingPage from './TypingPage';
+import { StatusBar } from 'react-native';
 
-const App = () => {
+const Stack = createNativeStackNavigator();
+
+const App: React.FC = () => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Hello World!</Text>
-    </View>
+    <NavigationContainer>
+      <StatusBar hidden={true} />
+      <Stack.Navigator initialRouteName="Main">
+        <Stack.Screen
+          name="Main"
+          component={MainPage}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Typing"
+          component={TypingPage}
+          options={{ headerShown: false }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5FCFF',
-  },
-  text: {
-    fontSize: 24,
-    color: '#333',
-  },
-});
 
 export default App;
