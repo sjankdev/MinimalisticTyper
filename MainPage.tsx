@@ -173,7 +173,7 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
                 confirmDelete(index);
               }
             }}>
-              <Icon name="trash-outline" size={28} color="#C62828" />
+              <Icon name="trash-outline" size={24} color="#C62828" />
             </TouchableOpacity>
           </View>
         </View>
@@ -183,33 +183,35 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={texts.length === 0 ? styles.centerButtonContainer : styles.topButtonContainer}>
-        <TouchableOpacity
-          style={styles.startTypingButton}
-          onPress={() => {
-            setIsSelectMode(false);
-            setSelectedIndices([]);
-            navigation.navigate('Typing', { addText });
-          }}
-        >
-          <Text style={styles.buttonText}>Start Typing</Text>
+      <View style={styles.selectButtonContainer}>
+        <TouchableOpacity onPress={() => {
+          setIsSelectMode(!isSelectMode);
+          setSelectedIndices([]);
+        }} style={[styles.selectButton, isSelectMode && styles.selectButtonActive]}>
+          <Text style={styles.selectButtonText}>{isSelectMode ? 'Cancel Selection' : 'Select Texts'}</Text>
         </TouchableOpacity>
       </View>
+      <View style={styles.spacer} />
+
       {renderHeader()}
+
       <FlatList
         data={texts}
         keyExtractor={(item, index) => index.toString()}
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}
       />
-      {texts.length > 0 && (
-        <TouchableOpacity onPress={() => {
-          setIsSelectMode(!isSelectMode);
+
+      <TouchableOpacity
+        style={styles.startTypingButton}
+        onPress={() => {
+          setIsSelectMode(false);
           setSelectedIndices([]);
-        }} style={styles.selectButton}>
-          <Text style={styles.buttonText}>{isSelectMode ? 'Cancel' : 'Select'}</Text>
-        </TouchableOpacity>
-      )}
+          navigation.navigate('Typing', { addText });
+        }}
+      >
+        <Icon name="add" size={32} color="#007BFF" />
+      </TouchableOpacity>
 
       <ConfirmationDialog
         visible={dialogVisible}
@@ -252,14 +254,18 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     backgroundColor: '#222',
-    borderRadius: 10,
+    borderRadius: 8,
     padding: 10,
-    marginBottom: 10,
+    marginBottom: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   selectedTextContainer: {
-    backgroundColor: '#444',
+    backgroundColor: '#007BFF',
+  },
+  dateItem: {
+    justifyContent: 'center',
+    alignItems: 'flex-end',
   },
   dateText: {
     color: 'lightgray',
@@ -268,25 +274,43 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#121212',
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
-    margin: 5,
+    fontSize: 14,
+    margin: 4,
   },
   startTypingButton: {
-    backgroundColor: '#007BFF',
-    padding: 10,
-    borderRadius: 5,
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 50,
     alignItems: 'center',
+    elevation: 3,
+  },
+  selectButtonContainer: {
+    alignItems: 'flex-start',
+    marginBottom: 8,
   },
   selectButton: {
     backgroundColor: '#007BFF',
-    padding: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     borderRadius: 5,
     alignItems: 'center',
-    marginTop: 10,
+    width: 150,
+  },
+  selectButtonActive: {
+    backgroundColor: '#C62828',
+  },
+  selectButtonText: {
+    color: '#fff',
+    fontSize: 14,
   },
   deleteButton: {
     justifyContent: 'center',
@@ -295,17 +319,8 @@ const styles = StyleSheet.create({
   textContent: {
     flex: 1,
   },
-  dateItem: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  centerButtonContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  topButtonContainer: {
-    marginBottom: 10,
+  spacer: {
+    height: 10,
   },
   emptyList: {
     flex: 1,
