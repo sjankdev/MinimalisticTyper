@@ -118,6 +118,14 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
     setSelectionMode(false);
   };
 
+  const toggleSelectAllTexts = () => {
+    if (selectedTexts.size === texts.length) {
+      setSelectedTexts(new Set()); 
+    } else {
+      setSelectedTexts(new Set(texts.map((_, i) => i))); 
+    }
+  };
+
   const renderItem = ({ item, index }: { item: SavedText; index: number }) => {
     const truncatedText = item.text.length > 100 ? item.text.slice(0, 100) + '...' : item.text;
 
@@ -163,8 +171,10 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
 
       {selectionMode && (
         <View style={styles.selectionActions}>
-          <TouchableOpacity onPress={() => setSelectedTexts(new Set(texts.map((_, i) => i)))}>
-            <Text style={styles.actionText}>Select All</Text>
+          <TouchableOpacity onPress={toggleSelectAllTexts}>
+            <Text style={styles.actionText}>
+              {selectedTexts.size === texts.length ? 'Deselect All' : 'Select All'}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={deleteSelectedTexts}>
             <Text style={styles.actionText}>Delete Selected</Text>
@@ -286,7 +296,7 @@ const styles = StyleSheet.create({
   },
   sideMenu: {
     position: 'absolute',
-    bottom: 80,  
+    bottom: 80,
     right: 20,
     backgroundColor: '#fff',
     borderRadius: 8,
