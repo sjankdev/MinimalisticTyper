@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, StyleSheet, TouchableOpacity, Alert, Text, Dimensions, SafeAreaView } from 'react-native';
+import { View, FlatList, StyleSheet, TouchableOpacity, Text, Dimensions, SafeAreaView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
 import RenderHTML from 'react-native-render-html';
+import ConfirmationDialog from './ConfirmationDialog';
 
 interface SavedText {
   title: string;
@@ -24,6 +25,9 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [texts, setTexts] = useState<SavedText[]>([]);
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [isSelectMode, setIsSelectMode] = useState<boolean>(false);
+  const [dialogVisible, setDialogVisible] = useState<boolean>(false);
+  const [bulkDeleteDialogVisible, setBulkDeleteDialogVisible] = useState<boolean>(false);
+  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
   const storeData = async (texts: SavedText[]) => {
     try {
@@ -55,15 +59,21 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   const confirmDelete = (index: number) => {
-    Alert.alert(
-      'Delete Text',
-      'Are you sure you want to delete this text?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', onPress: () => deleteText(index) },
-      ],
-      { cancelable: false }
-    );
+    setDeleteIndex(index);
+    setDialogVisible(true);
+  };
+
+  const confirmDeleteSelectedTexts = () => {
+    setBulkDeleteDialogVisible(true);
+  };
+
+  const deleteSelectedTexts = async () => {
+    const updatedTexts = texts.filter((_, i) => !selectedIndices.includes(i));
+    setTexts(updatedTexts);
+    await storeData(updatedTexts);
+    setSelectedIndices([]);
+    setIsSelectMode(false);
+    setBulkDeleteDialogVisible(false);
   };
 
   useEffect(() => {
@@ -89,26 +99,6 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const handleEditText = (title: string, text: string, index: number) => {
     navigation.navigate('Typing', { addText, initialText: text, initialTitle: title, index });
-  };
-
-  const confirmDeleteSelectedTexts = () => {
-    Alert.alert(
-      'Delete Selected',
-      'Are you sure you want to delete the selected texts?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', onPress: deleteSelectedTexts },
-      ],
-      { cancelable: false }
-    );
-  };
-
-  const deleteSelectedTexts = async () => {
-    const updatedTexts = texts.filter((_, i) => !selectedIndices.includes(i));
-    setTexts(updatedTexts);
-    await storeData(updatedTexts);
-    setSelectedIndices([]);
-    setIsSelectMode(false);
   };
 
   const toggleSelect = (index: number) => {
@@ -191,7 +181,6 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
     );
   };
 
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={texts.length === 0 ? styles.centerButtonContainer : styles.topButtonContainer}>
@@ -215,14 +204,37 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
       />
       {texts.length > 0 && (
         <TouchableOpacity onPress={() => {
-          if (isSelectMode) {
-            setSelectedIndices([]);
-          }
           setIsSelectMode(!isSelectMode);
+          setSelectedIndices([]);
         }} style={styles.selectButton}>
           <Text style={styles.buttonText}>{isSelectMode ? 'Cancel' : 'Select'}</Text>
         </TouchableOpacity>
       )}
+
+      <ConfirmationDialog
+        visible={dialogVisible}
+        title="Delete Text"
+        message="Are you sure you want to delete this text?"
+        onConfirm={() => {
+          if (deleteIndex !== null) {
+            deleteText(deleteIndex);
+            setDeleteIndex(null);
+          }
+          setDialogVisible(false);
+        }}
+        onCancel={() => {
+          setDialogVisible(false);
+          setDeleteIndex(null);
+        }}
+      />
+
+      <ConfirmationDialog
+        visible={bulkDeleteDialogVisible}
+        title="Delete Selected"
+        message="Are you sure you want to delete the selected texts?"
+        onConfirm={deleteSelectedTexts}
+        onCancel={() => setBulkDeleteDialogVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -230,82 +242,75 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'black',
-    padding: 20,
+    backgroundColor: '#121212',
+    padding: 10,
   },
   titleText: {
-    color: 'white',
+    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  textContainer: {
+    backgroundColor: '#222',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  selectedTextContainer: {
+    backgroundColor: '#444',
+  },
+  dateText: {
+    color: 'lightgray',
+    fontSize: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    margin: 5,
+  },
+  startTypingButton: {
+    backgroundColor: '#007BFF',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  selectButton: {
+    backgroundColor: '#007BFF',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  deleteButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  textContent: {
+    flex: 1,
+  },
+  dateItem: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   centerButtonContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    width: '100%',
   },
   topButtonContainer: {
-    width: '100%',
-    marginBottom: 20,
-    alignItems: 'center',
+    marginBottom: 10,
   },
-  startTypingButton: {
-    backgroundColor: 'transparent',
-    padding: 10,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#1E90FF',
-    marginBottom: 20,
-  },
-  buttonText: {
-    color: '#1E90FF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  textContainer: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderColor: '#444',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  selectedTextContainer: {
-    backgroundColor: '#1E90FF',
-  },
-  textContent: {
-    flex: 2,
-    marginRight: 10,
-  },
-  dateItem: {
+  emptyList: {
     flex: 1,
-    alignItems: 'flex-start',
-  },
-  dateText: {
-    color: 'gray',
-    fontSize: 12,
-  },
-  deleteButton: {
-    flex: 0.5,
-    alignItems: 'flex-end',
-  },
-  checkbox: {
-    marginRight: 10,
-  },
-  selectButton: {
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#1E90FF',
-    borderRadius: 5,
-    marginTop: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: 'black',
   },
 });
 
