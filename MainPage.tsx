@@ -120,9 +120,9 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const toggleSelectAllTexts = () => {
     if (selectedTexts.size === texts.length) {
-      setSelectedTexts(new Set()); 
+      setSelectedTexts(new Set());
     } else {
-      setSelectedTexts(new Set(texts.map((_, i) => i))); 
+      setSelectedTexts(new Set(texts.map((_, i) => i)));
     }
   };
 
@@ -187,7 +187,6 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       )}
-
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.startTypingButton}
@@ -304,7 +303,6 @@ const styles = StyleSheet.create({
     elevation: 5,
     width: 200,
   },
-
   menuItem: {
     paddingVertical: 10,
   },
@@ -314,13 +312,15 @@ const styles = StyleSheet.create({
   },
   selectionActions: {
     position: 'absolute',
-    bottom: 10,
+    bottom: 80,
     left: 0,
     right: 0,
     flexDirection: 'row',
     justifyContent: 'space-evenly',
-    backgroundColor: '#333',
+    backgroundColor: '#444',
     paddingVertical: 10,
+    borderRadius: 8,
+    elevation: 5,
   },
   actionText: {
     color: '#fff',
