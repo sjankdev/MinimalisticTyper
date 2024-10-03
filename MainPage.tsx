@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity, Alert, Text, Dimensions, SafeAreaView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
-import RenderHTML from 'react-native-render-html';
 
 interface SavedText {
+  title: string;
   text: string;
   date: string;
   timestamp: number;
@@ -21,7 +21,6 @@ const formatDate = (date: Date) => {
 
 const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [texts, setTexts] = useState<SavedText[]>([]);
-  const contentWidth = Dimensions.get('window').width;
 
   const storeData = async (texts: SavedText[]) => {
     try {
@@ -50,25 +49,25 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
     loadData();
   }, []);
 
-  const addText = async (text: string, index?: number) => {
+  const addText = async (title: string, text: string, index?: number) => {
     const date = formatDate(new Date());
     const timestamp = Date.now();
     let updatedTexts;
 
     if (index !== undefined) {
-      const updatedText = { text, date, timestamp };
+      const updatedText = { title, text, date, timestamp };
       updatedTexts = texts.filter((_, i) => i !== index);
       updatedTexts = [updatedText, ...updatedTexts];
     } else {
-      updatedTexts = [{ text, date, timestamp }, ...texts];
+      updatedTexts = [{ title, text, date, timestamp }, ...texts];
     }
 
     setTexts(updatedTexts);
     await storeData(updatedTexts);
   };
 
-  const handleEditText = (text: string, index: number) => {
-    navigation.navigate('Typing', { addText, initialText: text, index });
+  const handleEditText = (title: string, text: string, index: number) => {
+    navigation.navigate('Typing', { addText, initialText: text, initialTitle: title, index });
   };
 
   const deleteText = async (index: number) => {
@@ -89,18 +88,6 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
     );
   };
 
-  const tagsStyles = {
-    p: {
-      color: 'white',
-    },
-    strong: {
-      fontWeight: 'bold' as 'bold',
-    },
-    body: {
-      color: 'white',
-    },
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={texts.length === 0 ? styles.centerButtonContainer : styles.topButtonContainer}>
@@ -115,21 +102,19 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
         data={texts}
         keyExtractor={(item, index) => index.toString()}
         renderItem={({ item, index }) => (
-          <TouchableOpacity onPress={() => handleEditText(item.text, index)}>
+          <TouchableOpacity onPress={() => handleEditText(item.title, item.text, index)}>
             <View style={styles.textContainer}>
               <View style={styles.textContent}>
-                <RenderHTML
-                  contentWidth={contentWidth}
-                  source={{ html: item.text.substring(0, 19) }}
-                  tagsStyles={tagsStyles}
-                />
+                <Text style={styles.titleText} numberOfLines={1} ellipsizeMode="tail">
+                  {item.title}
+                </Text>
               </View>
               <View style={styles.dateItem}>
                 <Text style={styles.dateText}>{item.date || ''}</Text>
               </View>
               <View style={styles.deleteButton}>
                 <TouchableOpacity onPress={() => confirmDelete(index)}>
-                  <Icon name="trash-outline" size={24} color="#C62828" />
+                  <Icon name="trash-outline" size={28} color="#C62828" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -146,6 +131,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'black',
     padding: 20,
+  },
+  titleText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   centerButtonContainer: {
     flex: 1,
@@ -180,11 +170,11 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   textContent: {
-    flex: 1,
+    width: '60%',
     paddingRight: 10,
   },
   dateItem: {
-    width: '33%',
+    width: '25%',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -193,7 +183,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   deleteButton: {
-    width: '33%',
+    width: '15%',
     alignItems: 'flex-end',
   },
 });
