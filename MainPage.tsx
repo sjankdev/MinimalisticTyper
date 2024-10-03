@@ -23,11 +23,11 @@ const formatDate = (date: Date) => {
 
 const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [texts, setTexts] = useState<SavedText[]>([]);
-  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
-  const [isSelectMode, setIsSelectMode] = useState<boolean>(false);
   const [dialogVisible, setDialogVisible] = useState<boolean>(false);
-  const [bulkDeleteDialogVisible, setBulkDeleteDialogVisible] = useState<boolean>(false);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
+  const [sideMenuVisible, setSideMenuVisible] = useState<boolean>(false);
+  const [selectionMode, setSelectionMode] = useState<boolean>(false);
+  const [selectedTexts, setSelectedTexts] = useState<Set<number>>(new Set());
 
   const storeData = async (texts: SavedText[]) => {
     try {
@@ -63,19 +63,6 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
     setDialogVisible(true);
   };
 
-  const confirmDeleteSelectedTexts = () => {
-    setBulkDeleteDialogVisible(true);
-  };
-
-  const deleteSelectedTexts = async () => {
-    const updatedTexts = texts.filter((_, i) => !selectedIndices.includes(i));
-    setTexts(updatedTexts);
-    await storeData(updatedTexts);
-    setSelectedIndices([]);
-    setIsSelectMode(false);
-    setBulkDeleteDialogVisible(false);
-  };
-
   useEffect(() => {
     loadData();
   }, []);
@@ -101,54 +88,42 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
     navigation.navigate('Typing', { addText, initialText: text, initialTitle: title, index });
   };
 
-  const toggleSelect = (index: number) => {
-    if (selectedIndices.includes(index)) {
-      setSelectedIndices(selectedIndices.filter(i => i !== index));
-    } else {
-      setSelectedIndices([...selectedIndices, index]);
-    }
+  const handleAdditionalOperations = () => {
+    setSideMenuVisible(!sideMenuVisible);
   };
 
-  const toggleSelectAll = () => {
-    if (selectedIndices.length === texts.length) {
-      setSelectedIndices([]);
-    } else {
-      setSelectedIndices(texts.map((_, index) => index));
-    }
+  const handleSelectTexts = () => {
+    setSelectionMode(true);
+    setSelectedTexts(new Set());
+    setSideMenuVisible(false);
   };
 
-  const renderHeader = () => {
-    if (isSelectMode) {
-      return (
-        <View style={styles.header}>
-          <TouchableOpacity onPress={toggleSelectAll}>
-            <Text style={styles.buttonText}>
-              {selectedIndices.length === texts.length ? 'Deselect All' : 'Select All'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={confirmDeleteSelectedTexts} disabled={selectedIndices.length === 0}>
-            <Text style={[styles.buttonText, { color: selectedIndices.length === 0 ? 'gray' : '#C62828' }]}>
-              Delete Selected
-            </Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    return null;
+  const toggleSelectText = (index: number) => {
+    setSelectedTexts(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(index)) {
+        newSelection.delete(index);
+      } else {
+        newSelection.add(index);
+      }
+      return newSelection;
+    });
+  };
+
+  const deleteSelectedTexts = async () => {
+    const updatedTexts = texts.filter((_, index) => !selectedTexts.has(index));
+    setTexts(updatedTexts);
+    await storeData(updatedTexts);
+    setSelectedTexts(new Set());
+    setSelectionMode(false);
   };
 
   const renderItem = ({ item, index }: { item: SavedText; index: number }) => {
     const truncatedText = item.text.length > 100 ? item.text.slice(0, 100) + '...' : item.text;
 
     return (
-      <TouchableOpacity onPress={() => {
-        if (isSelectMode) {
-          toggleSelect(index);
-        } else {
-          handleEditText(item.title, item.text, index);
-        }
-      }}>
-        <View style={[styles.textContainer, selectedIndices.includes(index) && styles.selectedTextContainer]}>
+      <TouchableOpacity onPress={() => selectionMode ? toggleSelectText(index) : handleEditText(item.title, item.text, index)}>
+        <View style={[styles.textContainer, selectedTexts.has(index) && styles.selectedText]}>
           <View style={styles.textContent}>
             <Text style={styles.titleText} numberOfLines={1} ellipsizeMode="tail">
               {item.title}
@@ -166,15 +141,11 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
             <Text style={styles.dateText}>{item.date || ''}</Text>
           </View>
           <View style={styles.deleteButton}>
-            <TouchableOpacity onPress={() => {
-              if (isSelectMode) {
-                toggleSelect(index);
-              } else {
-                confirmDelete(index);
-              }
-            }}>
-              <Icon name="trash-outline" size={24} color="#C62828" />
-            </TouchableOpacity>
+            {!selectionMode && (
+              <TouchableOpacity onPress={() => confirmDelete(index)}>
+                <Icon name="trash-outline" size={24} color="#C62828" />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </TouchableOpacity>
@@ -183,18 +154,6 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.selectButtonContainer}>
-        <TouchableOpacity onPress={() => {
-          setIsSelectMode(!isSelectMode);
-          setSelectedIndices([]);
-        }} style={[styles.selectButton, isSelectMode && styles.selectButtonActive]}>
-          <Text style={styles.selectButtonText}>{isSelectMode ? 'Cancel Selection' : 'Select Texts'}</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.spacer} />
-
-      {renderHeader()}
-
       <FlatList
         data={texts}
         keyExtractor={(item, index) => index.toString()}
@@ -202,16 +161,49 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
       />
 
-      <TouchableOpacity
-        style={styles.startTypingButton}
-        onPress={() => {
-          setIsSelectMode(false);
-          setSelectedIndices([]);
-          navigation.navigate('Typing', { addText });
-        }}
-      >
-        <Icon name="add" size={32} color="#007BFF" />
-      </TouchableOpacity>
+      {selectionMode && (
+        <View style={styles.selectionActions}>
+          <TouchableOpacity onPress={() => setSelectedTexts(new Set(texts.map((_, i) => i)))}>
+            <Text style={styles.actionText}>Select All</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={deleteSelectedTexts}>
+            <Text style={styles.actionText}>Delete Selected</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => {
+            setSelectionMode(false);
+            setSelectedTexts(new Set());
+          }}>
+            <Text style={styles.actionText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={styles.startTypingButton}
+          onPress={() => navigation.navigate('Typing', { addText })}
+        >
+          <Icon name="add" size={32} color="#007BFF" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.additionalButton}
+          onPress={handleAdditionalOperations}
+        >
+          <Icon name="ellipsis-horizontal" size={32} color="#007BFF" />
+        </TouchableOpacity>
+      </View>
+
+      {sideMenuVisible && (
+        <View style={styles.sideMenu}>
+          <TouchableOpacity onPress={handleSelectTexts} style={styles.menuItem}>
+            <Text style={styles.menuText}>Select Texts</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setSideMenuVisible(false)} style={styles.menuItem}>
+            <Text style={styles.menuText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <ConfirmationDialog
         visible={dialogVisible}
@@ -228,14 +220,6 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
           setDialogVisible(false);
           setDeleteIndex(null);
         }}
-      />
-
-      <ConfirmationDialog
-        visible={bulkDeleteDialogVisible}
-        title="Delete Selected"
-        message="Are you sure you want to delete the selected texts?"
-        onConfirm={deleteSelectedTexts}
-        onCancel={() => setBulkDeleteDialogVisible(false)}
       />
     </SafeAreaView>
   );
@@ -260,8 +244,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  selectedTextContainer: {
-    backgroundColor: '#007BFF',
+  selectedText: {
+    backgroundColor: '#444',
   },
   dateItem: {
     justifyContent: 'center',
@@ -271,46 +255,25 @@ const styles = StyleSheet.create({
     color: 'lightgray',
     fontSize: 12,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-    paddingHorizontal: 10,
-    backgroundColor: '#121212',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 14,
-    margin: 4,
-  },
-  startTypingButton: {
+  buttonContainer: {
     position: 'absolute',
     bottom: 20,
     right: 20,
+  },
+  startTypingButton: {
     backgroundColor: '#fff',
     padding: 12,
     borderRadius: 50,
     alignItems: 'center',
     elevation: 3,
+    marginBottom: 10,
   },
-  selectButtonContainer: {
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  selectButton: {
-    backgroundColor: '#007BFF',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 5,
+  additionalButton: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 50,
     alignItems: 'center',
-    width: 150,
-  },
-  selectButtonActive: {
-    backgroundColor: '#C62828',
-  },
-  selectButtonText: {
-    color: '#fff',
-    fontSize: 14,
+    elevation: 3,
   },
   deleteButton: {
     justifyContent: 'center',
@@ -319,13 +282,36 @@ const styles = StyleSheet.create({
   textContent: {
     flex: 1,
   },
-  spacer: {
-    height: 10,
+  sideMenu: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 10,
+    elevation: 5,
+    width: 200,
   },
-  emptyList: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  menuItem: {
+    paddingVertical: 10,
+  },
+  menuText: {
+    color: '#007BFF',
+    fontSize: 16,
+  },
+  selectionActions: {
+    position: 'absolute',
+    bottom: 10,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    backgroundColor: '#333',
+    paddingVertical: 10,
+  },
+  actionText: {
+    color: '#fff',
+    fontSize: 16,
   },
 });
 
