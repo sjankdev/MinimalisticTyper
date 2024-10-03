@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity, Alert, Text, Dimensions, SafeAreaView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
+import RenderHTML from 'react-native-render-html';
 
 interface SavedText {
   title: string;
@@ -146,6 +147,51 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
     return null;
   };
 
+  const renderItem = ({ item, index }: { item: SavedText; index: number }) => {
+    const truncatedText = item.text.length > 100 ? item.text.slice(0, 100) + '...' : item.text;
+
+    return (
+      <TouchableOpacity onPress={() => {
+        if (isSelectMode) {
+          toggleSelect(index);
+        } else {
+          handleEditText(item.title, item.text, index);
+        }
+      }}>
+        <View style={[styles.textContainer, selectedIndices.includes(index) && styles.selectedTextContainer]}>
+          <View style={styles.textContent}>
+            <Text style={styles.titleText} numberOfLines={1} ellipsizeMode="tail">
+              {item.title}
+            </Text>
+            <RenderHTML
+              contentWidth={Dimensions.get('window').width}
+              source={{ html: truncatedText }}
+              tagsStyles={{
+                body: { color: 'gray' },
+                p: { color: 'gray' },
+              }}
+            />
+          </View>
+          <View style={styles.dateItem}>
+            <Text style={styles.dateText}>{item.date || ''}</Text>
+          </View>
+          <View style={styles.deleteButton}>
+            <TouchableOpacity onPress={() => {
+              if (isSelectMode) {
+                toggleSelect(index);
+              } else {
+                confirmDelete(index);
+              }
+            }}>
+              <Icon name="trash-outline" size={28} color="#C62828" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={texts.length === 0 ? styles.centerButtonContainer : styles.topButtonContainer}>
@@ -164,46 +210,7 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
       <FlatList
         data={texts}
         keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item, index }) => (
-          <TouchableOpacity onPress={() => {
-            if (isSelectMode) {
-              toggleSelect(index);
-            } else {
-              handleEditText(item.title, item.text, index);
-            }
-          }}>
-            <View style={[styles.textContainer, selectedIndices.includes(index) && styles.selectedTextContainer]}>
-              <View style={styles.textContent}>
-                <Text style={styles.titleText} numberOfLines={1} ellipsizeMode="tail">
-                  {item.title}
-                </Text>
-                {isSelectMode && (
-                  <TouchableOpacity onPress={() => toggleSelect(index)} style={styles.checkbox}>
-                    {selectedIndices.includes(index) ? (
-                      <Icon name="checkbox" size={20} color="#1E90FF" />
-                    ) : (
-                      <Icon name="square-outline" size={20} color="#C62828" />
-                    )}
-                  </TouchableOpacity>
-                )}
-              </View>
-              <View style={styles.dateItem}>
-                <Text style={styles.dateText}>{item.date || ''}</Text>
-              </View>
-              <View style={styles.deleteButton}>
-                <TouchableOpacity onPress={() => {
-                  if (isSelectMode) {
-                    toggleSelect(index);
-                  } else {
-                    confirmDelete(index);
-                  }
-                }}>
-                  <Icon name="trash-outline" size={28} color="#C62828" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </TouchableOpacity>
-        )}
+        renderItem={renderItem}
         showsVerticalScrollIndicator={false}
       />
       {texts.length > 0 && (
@@ -256,40 +263,34 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   textContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#555',
-    width: '100%',
+    borderColor: '#444',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   selectedTextContainer: {
-    backgroundColor: 'rgba(30, 144, 255, 0.2)',
+    backgroundColor: '#1E90FF',
   },
   textContent: {
-    width: '60%',
-    paddingRight: 10,
+    flex: 2,
+    marginRight: 10,
   },
   dateItem: {
-    width: '25%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flex: 1,
+    alignItems: 'flex-start',
   },
   dateText: {
     color: 'gray',
-    textAlign: 'center',
+    fontSize: 12,
   },
   deleteButton: {
-    width: '15%',
+    flex: 0.5,
     alignItems: 'flex-end',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-  },
   checkbox: {
-    marginLeft: 10,
+    marginRight: 10,
   },
   selectButton: {
     alignItems: 'center',
@@ -298,6 +299,13 @@ const styles = StyleSheet.create({
     borderColor: '#1E90FF',
     borderRadius: 5,
     marginTop: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: 'black',
   },
 });
 
