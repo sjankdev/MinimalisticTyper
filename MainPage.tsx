@@ -259,6 +259,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   startTypingButton: {
     backgroundColor: '#fff',
@@ -266,7 +268,7 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     alignItems: 'center',
     elevation: 3,
-    marginBottom: 10,
+    marginRight: 10,
   },
   additionalButton: {
     backgroundColor: '#fff',
@@ -284,7 +286,7 @@ const styles = StyleSheet.create({
   },
   sideMenu: {
     position: 'absolute',
-    top: 60,
+    bottom: 80,  
     right: 20,
     backgroundColor: '#fff',
     borderRadius: 8,
@@ -292,6 +294,7 @@ const styles = StyleSheet.create({
     elevation: 5,
     width: 200,
   },
+
   menuItem: {
     paddingVertical: 10,
   },
