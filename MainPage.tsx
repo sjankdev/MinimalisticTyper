@@ -21,6 +21,8 @@ const formatDate = (date: Date) => {
 
 const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [texts, setTexts] = useState<SavedText[]>([]);
+  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
+  const [isSelectMode, setIsSelectMode] = useState<boolean>(false);
 
   const storeData = async (texts: SavedText[]) => {
     try {
@@ -43,6 +45,24 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
     } catch (e) {
       console.error("Error loading data", e);
     }
+  };
+
+  const deleteText = async (index: number) => {
+    const updatedTexts = texts.filter((_, i) => i !== index);
+    setTexts(updatedTexts);
+    await storeData(updatedTexts);
+  };
+
+  const confirmDelete = (index: number) => {
+    Alert.alert(
+      'Delete Text',
+      'Are you sure you want to delete this text?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', onPress: () => deleteText(index) },
+      ],
+      { cancelable: false }
+    );
   };
 
   useEffect(() => {
@@ -70,22 +90,60 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
     navigation.navigate('Typing', { addText, initialText: text, initialTitle: title, index });
   };
 
-  const deleteText = async (index: number) => {
-    const updatedTexts = texts.filter((_, i) => i !== index);
-    setTexts(updatedTexts);
-    await storeData(updatedTexts);
-  };
-
-  const confirmDelete = (index: number) => {
+  const confirmDeleteSelectedTexts = () => {
     Alert.alert(
-      'Delete Text',
-      'Are you sure you want to delete this text?',
+      'Delete Selected',
+      'Are you sure you want to delete the selected texts?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', onPress: () => deleteText(index) },
+        { text: 'Delete', onPress: deleteSelectedTexts },
       ],
       { cancelable: false }
     );
+  };
+
+  const deleteSelectedTexts = async () => {
+    const updatedTexts = texts.filter((_, i) => !selectedIndices.includes(i));
+    setTexts(updatedTexts);
+    await storeData(updatedTexts);
+    setSelectedIndices([]);
+    setIsSelectMode(false);
+  };
+
+  const toggleSelect = (index: number) => {
+    if (selectedIndices.includes(index)) {
+      setSelectedIndices(selectedIndices.filter(i => i !== index));
+    } else {
+      setSelectedIndices([...selectedIndices, index]);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIndices.length === texts.length) {
+      setSelectedIndices([]);
+    } else {
+      setSelectedIndices(texts.map((_, index) => index));
+    }
+  };
+
+  const renderHeader = () => {
+    if (isSelectMode) {
+      return (
+        <View style={styles.header}>
+          <TouchableOpacity onPress={toggleSelectAll}>
+            <Text style={styles.buttonText}>
+              {selectedIndices.length === texts.length ? 'Deselect All' : 'Select All'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={confirmDeleteSelectedTexts} disabled={selectedIndices.length === 0}>
+            <Text style={[styles.buttonText, { color: selectedIndices.length === 0 ? 'gray' : '#C62828' }]}>
+              Delete Selected
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return null;
   };
 
   return (
@@ -93,27 +151,53 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
       <View style={texts.length === 0 ? styles.centerButtonContainer : styles.topButtonContainer}>
         <TouchableOpacity
           style={styles.startTypingButton}
-          onPress={() => navigation.navigate('Typing', { addText })}
+          onPress={() => {
+            setIsSelectMode(false);
+            setSelectedIndices([]);
+            navigation.navigate('Typing', { addText });
+          }}
         >
           <Text style={styles.buttonText}>Start Typing</Text>
         </TouchableOpacity>
       </View>
+      {renderHeader()}
       <FlatList
         data={texts}
         keyExtractor={(item, index) => index.toString()}
         renderItem={({ item, index }) => (
-          <TouchableOpacity onPress={() => handleEditText(item.title, item.text, index)}>
-            <View style={styles.textContainer}>
+          <TouchableOpacity onPress={() => {
+            if (isSelectMode) {
+              toggleSelect(index);
+            } else {
+              handleEditText(item.title, item.text, index);
+            }
+          }}>
+            <View style={[styles.textContainer, selectedIndices.includes(index) && styles.selectedTextContainer]}>
               <View style={styles.textContent}>
                 <Text style={styles.titleText} numberOfLines={1} ellipsizeMode="tail">
                   {item.title}
                 </Text>
+                {isSelectMode && (
+                  <TouchableOpacity onPress={() => toggleSelect(index)} style={styles.checkbox}>
+                    {selectedIndices.includes(index) ? (
+                      <Icon name="checkbox" size={20} color="#1E90FF" />
+                    ) : (
+                      <Icon name="square-outline" size={20} color="#C62828" />
+                    )}
+                  </TouchableOpacity>
+                )}
               </View>
               <View style={styles.dateItem}>
                 <Text style={styles.dateText}>{item.date || ''}</Text>
               </View>
               <View style={styles.deleteButton}>
-                <TouchableOpacity onPress={() => confirmDelete(index)}>
+                <TouchableOpacity onPress={() => {
+                  if (isSelectMode) {
+                    toggleSelect(index);
+                  } else {
+                    confirmDelete(index);
+                  }
+                }}>
                   <Icon name="trash-outline" size={28} color="#C62828" />
                 </TouchableOpacity>
               </View>
@@ -122,6 +206,16 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
         )}
         showsVerticalScrollIndicator={false}
       />
+      {texts.length > 0 && (
+        <TouchableOpacity onPress={() => {
+          if (isSelectMode) {
+            setSelectedIndices([]);
+          }
+          setIsSelectMode(!isSelectMode);
+        }} style={styles.selectButton}>
+          <Text style={styles.buttonText}>{isSelectMode ? 'Cancel' : 'Select'}</Text>
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 };
@@ -169,6 +263,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#555',
     width: '100%',
   },
+  selectedTextContainer: {
+    backgroundColor: 'rgba(30, 144, 255, 0.2)',
+  },
   textContent: {
     width: '60%',
     paddingRight: 10,
@@ -185,6 +282,22 @@ const styles = StyleSheet.create({
   deleteButton: {
     width: '15%',
     alignItems: 'flex-end',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+  },
+  checkbox: {
+    marginLeft: 10,
+  },
+  selectButton: {
+    alignItems: 'center',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#1E90FF',
+    borderRadius: 5,
+    marginTop: 20,
   },
 });
 
