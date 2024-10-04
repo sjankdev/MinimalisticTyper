@@ -8,7 +8,6 @@ import {
   SafeAreaView,
   Alert,
 } from "react-native";
-import { formatDate } from "./src/utils/utils"; 
 import {
   SavedText,
   storeData,
@@ -18,7 +17,6 @@ import {
   deleteAllTexts,
   deleteSelectedTexts,
 } from "./src/textManagement/textManager"; 
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/Ionicons";
 import RenderHTML from "react-native-render-html";
 import ConfirmationDialog from "./ConfirmationDialog";
