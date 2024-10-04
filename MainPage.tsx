@@ -1,9 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { View, FlatList, StyleSheet, TouchableOpacity, Text, Dimensions, SafeAreaView } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Icon from 'react-native-vector-icons/Ionicons';
-import RenderHTML from 'react-native-render-html';
-import ConfirmationDialog from './ConfirmationDialog';
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+  Dimensions,
+  SafeAreaView,
+  Alert,
+} from "react-native";
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Icon from "react-native-vector-icons/Ionicons";
+import RenderHTML from "react-native-render-html";
+import ConfirmationDialog from "./ConfirmationDialog";
 
 interface SavedText {
   title: string;
@@ -13,11 +23,11 @@ interface SavedText {
 }
 
 const formatDate = (date: Date) => {
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
   const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 };
 
@@ -28,10 +38,12 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [sideMenuVisible, setSideMenuVisible] = useState<boolean>(false);
   const [selectionMode, setSelectionMode] = useState<boolean>(false);
   const [selectedTexts, setSelectedTexts] = useState<Set<number>>(new Set());
-
+  const [confirmAction, setConfirmAction] = useState<
+    "deleteAll" | "deleteSelected" | null
+  >(null);
   const storeData = async (texts: SavedText[]) => {
     try {
-      await AsyncStorage.setItem('@texts', JSON.stringify(texts));
+      await AsyncStorage.setItem("@texts", JSON.stringify(texts));
     } catch (e) {
       console.error("Error storing data", e);
     }
@@ -39,11 +51,13 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const loadData = async () => {
     try {
-      const savedTexts = await AsyncStorage.getItem('@texts');
+      const savedTexts = await AsyncStorage.getItem("@texts");
       if (savedTexts !== null) {
         const parsedTexts = JSON.parse(savedTexts);
         if (Array.isArray(parsedTexts)) {
-          const sortedTexts = parsedTexts.sort((a, b) => b.timestamp - a.timestamp);
+          const sortedTexts = parsedTexts.sort(
+            (a, b) => b.timestamp - a.timestamp
+          );
           setTexts(sortedTexts);
         }
       }
@@ -85,7 +99,12 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   const handleEditText = (title: string, text: string, index: number) => {
-    navigation.navigate('Typing', { addText, initialText: text, initialTitle: title, index });
+    navigation.navigate("Typing", {
+      addText,
+      initialText: text,
+      initialTitle: title,
+      index,
+    });
   };
 
   const handleAdditionalOperations = () => {
@@ -99,7 +118,7 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   const toggleSelectText = (index: number) => {
-    setSelectedTexts(prev => {
+    setSelectedTexts((prev) => {
       const newSelection = new Set(prev);
       if (newSelection.has(index)) {
         newSelection.delete(index);
@@ -110,6 +129,11 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
     });
   };
 
+  const deleteAllTexts = async () => {
+    setTexts([]);
+    await storeData([]);
+  };
+
   const deleteSelectedTexts = async () => {
     const updatedTexts = texts.filter((_, index) => !selectedTexts.has(index));
     setTexts(updatedTexts);
@@ -118,35 +142,72 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
     setSelectionMode(false);
   };
 
-  const toggleSelectAllTexts = () => {
-    if (selectedTexts.size === texts.length) {
-      setSelectedTexts(new Set());
+  const handleDeleteAllConfirmation = () => {
+    setConfirmAction("deleteAll");
+    setDialogVisible(true);
+  };
+
+  const handleDeleteSelectedConfirmation = () => {
+    if (selectedTexts.size > 0) {
+      setConfirmAction("deleteSelected");
+      setDialogVisible(true);
     } else {
-      setSelectedTexts(new Set(texts.map((_, i) => i)));
+      Alert.alert("No texts selected for deletion.");
     }
   };
 
+  const confirmDeleteAction = () => {
+    if (confirmAction === "deleteAll") {
+      deleteAllTexts();
+      setSelectionMode(false);
+    } else if (confirmAction === "deleteSelected") {
+      deleteSelectedTexts();
+      setSelectionMode(false);
+    } else if (deleteIndex !== null) {
+      deleteText(deleteIndex);
+    }
+    setDialogVisible(false);
+    setConfirmAction(null);
+    setDeleteIndex(null);
+  };
+
   const renderItem = ({ item, index }: { item: SavedText; index: number }) => {
-    const truncatedText = item.text.length > 100 ? item.text.slice(0, 100) + '...' : item.text;
+    const truncatedText =
+      item.text.length > 100 ? item.text.slice(0, 100) + "..." : item.text;
 
     return (
-      <TouchableOpacity onPress={() => selectionMode ? toggleSelectText(index) : handleEditText(item.title, item.text, index)}>
-        <View style={[styles.textContainer, selectedTexts.has(index) && styles.selectedText]}>
+      <TouchableOpacity
+        onPress={() =>
+          selectionMode
+            ? toggleSelectText(index)
+            : handleEditText(item.title, item.text, index)
+        }
+      >
+        <View
+          style={[
+            styles.textContainer,
+            selectedTexts.has(index) && styles.selectedText,
+          ]}
+        >
           <View style={styles.textContent}>
-            <Text style={styles.titleText} numberOfLines={1} ellipsizeMode="tail">
+            <Text
+              style={styles.titleText}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
               {item.title}
             </Text>
             <RenderHTML
-              contentWidth={Dimensions.get('window').width}
+              contentWidth={Dimensions.get("window").width}
               source={{ html: truncatedText }}
               tagsStyles={{
-                body: { color: 'gray' },
-                p: { color: 'gray' },
+                body: { color: "gray" },
+                p: { color: "gray" },
               }}
             />
           </View>
           <View style={styles.dateItem}>
-            <Text style={styles.dateText}>{item.date || ''}</Text>
+            <Text style={styles.dateText}>{item.date || ""}</Text>
           </View>
           <View style={styles.deleteButton}>
             {!selectionMode && (
@@ -167,30 +228,53 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
         keyExtractor={(item, index) => index.toString()}
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
       />
 
       {selectionMode && (
         <View style={styles.selectionActions}>
-          <TouchableOpacity onPress={toggleSelectAllTexts}>
-            <Text style={styles.actionText}>
-              {selectedTexts.size === texts.length ? 'Deselect All' : 'Select All'}
-            </Text>
+          <TouchableOpacity onPress={handleDeleteAllConfirmation}>
+            <Text style={styles.actionText}>Delete All</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={deleteSelectedTexts}>
-            <Text style={styles.actionText}>Delete Selected</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => {
-            setSelectionMode(false);
-            setSelectedTexts(new Set());
-          }}>
-            <Text style={styles.actionText}>Cancel</Text>
-          </TouchableOpacity>
+          {selectedTexts.size === 0 ? (
+            <TouchableOpacity
+              onPress={() => {
+                setSelectionMode(false);
+                setSelectedTexts(new Set());
+              }}
+            >
+              <Text style={styles.actionText}>Cancel</Text>
+            </TouchableOpacity>
+          ) : (
+            <>
+              <TouchableOpacity onPress={handleDeleteSelectedConfirmation}>
+                <Text style={styles.actionText}>Delete Selected</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedTexts(new Set());
+                }}
+              >
+                <Text style={styles.actionText}>Deselect All</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectionMode(false);
+                  setSelectedTexts(new Set());
+                }}
+              >
+                <Text style={styles.actionText}>Cancel</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       )}
-      <View style={styles.buttonContainer}>
+      <View
+        style={[styles.buttonContainer, { bottom: selectionMode ? 80 : 20 }]}
+      >
         <TouchableOpacity
           style={styles.startTypingButton}
-          onPress={() => navigation.navigate('Typing', { addText })}
+          onPress={() => navigation.navigate("Typing", { addText })}
         >
           <Icon name="add" size={32} color="#007BFF" />
         </TouchableOpacity>
@@ -205,10 +289,23 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
 
       {sideMenuVisible && (
         <View style={styles.sideMenu}>
-          <TouchableOpacity onPress={handleSelectTexts} style={styles.menuItem}>
-            <Text style={styles.menuText}>Select Texts</Text>
+          <TouchableOpacity
+            onPress={texts.length > 0 ? handleSelectTexts : undefined}
+            style={styles.menuItem}
+          >
+            <Text
+              style={[
+                styles.menuText,
+                texts.length === 0 && styles.disabledMenuText,
+              ]}
+            >
+              Select Texts
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setSideMenuVisible(false)} style={styles.menuItem}>
+          <TouchableOpacity
+            onPress={() => setSideMenuVisible(false)}
+            style={styles.menuItem}
+          >
             <Text style={styles.menuText}>Cancel</Text>
           </TouchableOpacity>
         </View>
@@ -216,17 +313,24 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
 
       <ConfirmationDialog
         visible={dialogVisible}
-        title="Delete Text"
-        message="Are you sure you want to delete this text?"
-        onConfirm={() => {
-          if (deleteIndex !== null) {
-            deleteText(deleteIndex);
-            setDeleteIndex(null);
-          }
-          setDialogVisible(false);
-        }}
+        title={
+          confirmAction === "deleteAll"
+            ? "Delete All Texts"
+            : confirmAction === "deleteSelected"
+            ? "Delete Selected Texts"
+            : "Delete Text"
+        }
+        message={
+          confirmAction === "deleteAll"
+            ? "Are you sure you want to delete all texts?"
+            : confirmAction === "deleteSelected"
+            ? "Are you sure you want to delete the selected texts?"
+            : "Are you sure you want to delete this text?"
+        }
+        onConfirm={confirmDeleteAction}
         onCancel={() => {
           setDialogVisible(false);
+          setConfirmAction(null);
           setDeleteIndex(null);
         }}
       />
@@ -237,67 +341,73 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: "#121212",
     padding: 10,
   },
   titleText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
+
+  disabledMenuText: {
+    color: "#999",
+    fontStyle: "italic",
+  },
+
   textContainer: {
-    backgroundColor: '#222',
+    backgroundColor: "#222",
     borderRadius: 8,
     padding: 10,
     marginBottom: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   selectedText: {
-    backgroundColor: '#444',
+    backgroundColor: "#444",
   },
   dateItem: {
-    justifyContent: 'center',
-    alignItems: 'flex-end',
+    justifyContent: "center",
+    alignItems: "flex-end",
   },
   dateText: {
-    color: 'lightgray',
+    color: "lightgray",
     fontSize: 12,
   },
   buttonContainer: {
-    position: 'absolute',
-    bottom: 20,
+    position: "absolute",
     right: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
+
   startTypingButton: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     padding: 12,
     borderRadius: 50,
-    alignItems: 'center',
+    alignItems: "center",
     elevation: 3,
     marginRight: 10,
   },
   additionalButton: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     padding: 12,
     borderRadius: 50,
-    alignItems: 'center',
+    alignItems: "center",
     elevation: 3,
   },
   deleteButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   textContent: {
     flex: 1,
   },
   sideMenu: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 80,
     right: 20,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 8,
     padding: 10,
     elevation: 5,
@@ -307,24 +417,27 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   menuText: {
-    color: '#007BFF',
+    color: "#007BFF",
     fontSize: 16,
   },
   selectionActions: {
-    position: 'absolute',
-    bottom: 80,
+    position: "absolute",
+    bottom: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    backgroundColor: '#444',
-    paddingVertical: 10,
-    borderRadius: 8,
-    elevation: 5,
+    flexDirection: "row",
+    justifyContent: "space-evenly",
+    backgroundColor: "#444",
+    paddingVertical: 15,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    elevation: 10,
+    zIndex: 1000,
   },
   actionText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
+    fontWeight: "bold",
   },
 });
 
