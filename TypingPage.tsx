@@ -35,7 +35,7 @@ const TypingPage: React.FC<{ route: any; navigation: any }> = ({ route, navigati
           placeholder="Insert here..."
           editorStyle={{
             backgroundColor: 'transparent',
-            color: 'white',
+            color: '#e0e1dd',
             placeholderColor: 'gray',
           }}
           onChange={(html) => setInputText(html)}
@@ -92,6 +92,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.6,
     borderBottomColor: 'gray',
     fontSize: 16,
+    fontWeight: "bold",
   },
   richEditor: {
     flex: 1,
