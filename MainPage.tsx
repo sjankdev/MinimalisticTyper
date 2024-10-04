@@ -16,7 +16,7 @@ import {
   deleteText,
   deleteAllTexts,
   deleteSelectedTexts,
-} from "./src/textManagement/textManager"; 
+} from "./src/textManagement/textManager";
 import Icon from "react-native-vector-icons/Ionicons";
 import RenderHTML from "react-native-render-html";
 import ConfirmationDialog from "./ConfirmationDialog";
@@ -84,9 +84,13 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   const renderItem = ({ item, index }: { item: SavedText; index: number }) => {
+
+    const truncatedTitle =
+      item.title.length > 15 ? item.title.slice(0, 15) + "..." : item.title;
+
     const truncatedText =
-      item.text.length > 100 ? item.text.slice(0, 100) + "..." : item.text;
-  
+      item.text.length > 30 ? item.text.slice(0, 30) + "..." : item.text;
+
     return (
       <TouchableOpacity
         onPress={() =>
@@ -107,7 +111,7 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
               numberOfLines={1}
               ellipsizeMode="tail"
             >
-              {item.title}
+              {truncatedTitle}
             </Text>
             <RenderHTML
               contentWidth={Dimensions.get("window").width}
@@ -123,10 +127,12 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
           </View>
           <View style={styles.deleteButton}>
             {!selectionMode && (
-              <TouchableOpacity onPress={() => {
-                setDeleteIndex(index);
-                setDialogVisible(true);
-              }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setDeleteIndex(index);
+                  setDialogVisible(true);
+                }}
+              >
                 <Icon name="trash-outline" size={24} color="#C62828" />
               </TouchableOpacity>
             )}
@@ -135,6 +141,7 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
       </TouchableOpacity>
     );
   };
+
 
   const toggleSelectText = (index: number) => {
     setSelectedTexts((prev) => {
@@ -278,15 +285,15 @@ const MainPage: React.FC<{ navigation: any }> = ({ navigation }) => {
           confirmAction === "deleteAll"
             ? "Delete All Texts"
             : confirmAction === "deleteSelected"
-            ? "Delete Selected Texts"
-            : "Delete Text"
+              ? "Delete Selected Texts"
+              : "Delete Text"
         }
         message={
           confirmAction === "deleteAll"
             ? "Are you sure you want to delete all texts?"
             : confirmAction === "deleteSelected"
-            ? "Are you sure you want to delete the selected texts?"
-            : "Are you sure you want to delete this text?"
+              ? "Are you sure you want to delete the selected texts?"
+              : "Are you sure you want to delete this text?"
         }
         onConfirm={confirmDeleteAction}
         onCancel={() => {
